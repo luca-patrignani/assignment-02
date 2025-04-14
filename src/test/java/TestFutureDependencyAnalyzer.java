@@ -61,4 +61,19 @@ public class TestFutureDependencyAnalyzer {
         final Set<String> dependencies = getDependencies(code);
         assertEquals(Set.of("Integer"), dependencies);
     }
+
+    @Test
+    void testClassRecursive() {
+        final String code = """
+            package com.example;
+    
+            public class A {
+                public void method(A a) {
+                    return this;
+                }
+            }
+        """;
+        final Set<String> dependencies = getDependencies(code);
+        assertEquals(Set.of(), dependencies);
+    }
 }
