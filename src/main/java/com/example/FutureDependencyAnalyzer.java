@@ -14,15 +14,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FutureDependencyAnalyzer {
+    public FutureDependencyAnalyzer() {
+        CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
+        combinedTypeSolver.add(new ReflectionTypeSolver());
+        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+        StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
+    }
+
     public Future<Set<String>> getClassDependencies(Future<InputStream> classCode) {
         Future<CompilationUnit> compilationUnit = classCode
-                .compose(code -> {
-                    CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
-                    combinedTypeSolver.add(new ReflectionTypeSolver());
-                    JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
-                    StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
-                    return Future.succeededFuture(StaticJavaParser.parse(code));
-                });
+                .compose(code -> Future.succeededFuture(StaticJavaParser.parse(code)));
         Future<Set<String>> usedTypesFuture = compilationUnit.compose(
                 cu -> Future.succeededFuture(
                         cu.findAll(ClassOrInterfaceType.class).stream()
