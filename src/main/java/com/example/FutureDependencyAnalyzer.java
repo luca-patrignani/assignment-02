@@ -18,15 +18,14 @@ import java.util.stream.Collectors;
 
 public class FutureDependencyAnalyzer {
     public Future<Set<String>> getClassDependencies(Future<InputStream> classCode) {
-        // Set up a minimal type solver that only looks at the classes used to run this sample.
-        CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
-        combinedTypeSolver.add(new ReflectionTypeSolver());
-
-        // Configure JavaParser to use type resolution
-        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
-        StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
         Future<CompilationUnit> compilationUnit = classCode
-                .compose(code -> Future.succeededFuture(StaticJavaParser.parse(code)));
+                .compose(code -> {
+                    CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
+                    combinedTypeSolver.add(new ReflectionTypeSolver());
+                    JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+                    StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
+                    return Future.succeededFuture(StaticJavaParser.parse(code));
+                });
         Future<Set<String>> usedTypes = compilationUnit.compose(
                 cu -> Future.succeededFuture(
                         cu.findAll(ClassOrInterfaceType.class).stream()
