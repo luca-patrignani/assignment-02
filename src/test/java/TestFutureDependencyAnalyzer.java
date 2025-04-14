@@ -48,4 +48,17 @@ public class TestFutureDependencyAnalyzer {
         final Set<String> dependencies = getDependencies(code);
         assertEquals(Set.of("Object"), dependencies);
     }
+
+    @Test
+    void testInterface() {
+        final String code = """
+            package com.example;
+    
+            public interface A {
+                void method(Integer i);
+            }
+        """;
+        final Set<String> dependencies = getDependencies(code);
+        assertEquals(Set.of("Integer"), dependencies);
+    }
 }
