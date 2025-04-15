@@ -129,4 +129,22 @@ public class TestFutureClassDependencyAnalyzer {
         assertEquals(Set.of(), dependencies.publicTypes());
         assertEquals(Set.of("A"), dependencies.packageProtectedTypes());
     }
+
+    @Test
+    void testPrivateInnerClass() {
+        final String code = """
+            package com.example;
+            
+            public class A {
+                private class B {}
+                public void method() {
+                }
+            }
+        """;
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of("A"), dependencies.publicTypes());
+        assertEquals(Set.of(), dependencies.protectedTypes());
+        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals(Set.of(), dependencies.dependencies());
+    }
 }
