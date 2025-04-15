@@ -6,15 +6,17 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestFutureClassDependencyAnalyzer {
 
     final FutureClassDependencyAnalyzer fda = new FutureClassDependencyAnalyzer();
 
     private DepsReport getDependencies(String code) {
-        return fda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(code.getBytes())))
-                .result();
+        final var dependencies = fda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(code.getBytes())));
+        final var result = dependencies.result();
+        assertNull(dependencies.cause());
+        return result;
     }
 
     @Test
@@ -96,5 +98,22 @@ public class TestFutureClassDependencyAnalyzer {
         final var dependencies = getDependencies(code);
         assertEquals(Set.of("Object"), dependencies.dependencies());
         assertEquals(Set.of("A"), dependencies.publicTypes());
+    }
+
+    @Test
+    void testProtectedClass() {
+        final String code = """
+            package com.example;
+            
+            public class A {
+                protected class B {}
+                public void method(A a) {
+                    return this;
+                }
+            }
+        """;
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of(), dependencies.dependencies());
+        assertEquals(Set.of("B"), dependencies.protectedTypes());
     }
 }
