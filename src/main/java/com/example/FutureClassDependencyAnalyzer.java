@@ -59,9 +59,9 @@ public class FutureClassDependencyAnalyzer {
                         dependencyTypes.removeAll(classDecSet);
                     }
                     return Future.succeededFuture(new DepsReport(
-                            declaredTypes.get(ClassVisibility.PUBLIC),
-                            declaredTypes.get(ClassVisibility.PROTECTED),
-                            declaredTypes.get(ClassVisibility.PACKAGE_PROTECTED),
+                            declaredTypes.getOrDefault(ClassVisibility.PUBLIC, Set.of()),
+                            declaredTypes.getOrDefault(ClassVisibility.PROTECTED, Set.of()),
+                            declaredTypes.getOrDefault(ClassVisibility.PACKAGE_PROTECTED, Set.of()),
                             dependencyTypes
                     ));
                 });

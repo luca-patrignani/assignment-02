@@ -101,19 +101,32 @@ public class TestFutureClassDependencyAnalyzer {
     }
 
     @Test
-    void testProtectedClass() {
+    void testProtectedInnerClass() {
         final String code = """
             package com.example;
             
             public class A {
                 protected class B {}
-                public void method(A a) {
-                    return this;
+                public void method() {
                 }
             }
         """;
         final var dependencies = getDependencies(code);
         assertEquals(Set.of(), dependencies.dependencies());
         assertEquals(Set.of("B"), dependencies.protectedTypes());
+    }
+
+    @Test
+    void testPackageProtectedClass() {
+        final String code = """
+            package com.example;
+            
+            class A {
+            }
+        """;
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of(), dependencies.dependencies());
+        assertEquals(Set.of(), dependencies.publicTypes());
+        assertEquals(Set.of("A"), dependencies.packageProtectedTypes());
     }
 }
