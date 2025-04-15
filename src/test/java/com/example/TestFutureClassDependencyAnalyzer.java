@@ -81,4 +81,20 @@ public class TestFutureClassDependencyAnalyzer {
         assertEquals(Set.of(), dependencies.dependencies());
         assertEquals(Set.of("A"), dependencies.publicTypes());
     }
+
+    @Test
+    void testClassExtension() {
+        final String code = """
+            package com.example;
+            
+            public class A extends Object {
+                public void method(A a) {
+                    return this;
+                }
+            }
+        """;
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of("Object"), dependencies.dependencies());
+        assertEquals(Set.of("A"), dependencies.publicTypes());
+    }
 }
