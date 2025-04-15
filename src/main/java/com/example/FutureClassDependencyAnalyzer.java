@@ -1,14 +1,15 @@
 package com.example;
 
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
+import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
-import com.github.javaparser.ast.nodeTypes.modifiers.NodeWithAccessModifiers;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -16,6 +17,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import io.vertx.core.Future;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +32,7 @@ public class FutureClassDependencyAnalyzer {
         combinedTypeSolver.add(new ReflectionTypeSolver());
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
         StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
+        StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
     }
 
     public Future<DepsReport> getClassDependencies(Future<InputStream> classCode) {
@@ -37,10 +40,7 @@ public class FutureClassDependencyAnalyzer {
                 .compose(code -> Future.succeededFuture(StaticJavaParser.parse(code)));
         Future<Set<String>> usedTypesFuture = compilationUnit.compose(
                 cu -> Future.succeededFuture(
-                        Stream.concat(
-                                        cu.findAll(ClassOrInterfaceType.class).stream(),
-                                        cu.findAll(EnumDeclaration.class).stream()
-                                )
+                        cu.findAll(ClassOrInterfaceType.class).stream()
                                 .map(NodeWithSimpleName::getNameAsString)
                                 .collect(toSet())
                 )
@@ -48,7 +48,9 @@ public class FutureClassDependencyAnalyzer {
         Future<Set<TypeDeclaration<?>>> declaredTypesFuture = compilationUnit.compose(cu -> {
                     final var classDec = new HashSet<TypeDeclaration<?>>(cu.findAll(ClassOrInterfaceDeclaration.class));
                     final var enumDec = new HashSet<>(cu.findAll(EnumDeclaration.class));
+                    final var recordDec = new HashSet<>(cu.findAll(RecordDeclaration.class));
                     classDec.addAll(enumDec);
+                    classDec.addAll(recordDec);
                     return Future.succeededFuture(classDec);
                 }
         );

@@ -159,4 +159,19 @@ public class TestFutureClassDependencyAnalyzer {
         assertEquals(Set.of(), dependencies.packageProtectedTypes());
         assertEquals(Set.of(), dependencies.dependencies());
     }
+
+    @Test
+    void testRecord() {
+        final String code = """
+            public class B {
+                public record A() {};
+                final A a = new A();
+            }
+        """;
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of("A", "B"), dependencies.publicTypes());
+        assertEquals(Set.of(), dependencies.protectedTypes());
+        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals(Set.of(), dependencies.dependencies());
+    }
 }
