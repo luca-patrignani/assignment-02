@@ -5,6 +5,10 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
+import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
+import com.github.javaparser.ast.nodeTypes.modifiers.NodeWithAccessModifiers;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -16,6 +20,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.*;
 
@@ -32,29 +37,34 @@ public class FutureClassDependencyAnalyzer {
                 .compose(code -> Future.succeededFuture(StaticJavaParser.parse(code)));
         Future<Set<String>> usedTypesFuture = compilationUnit.compose(
                 cu -> Future.succeededFuture(
-                        cu.findAll(ClassOrInterfaceType.class).stream()
-                                .map(ClassOrInterfaceType::getNameAsString)
+                        Stream.concat(
+                                        cu.findAll(ClassOrInterfaceType.class).stream(),
+                                        cu.findAll(EnumDeclaration.class).stream()
+                                )
+                                .map(NodeWithSimpleName::getNameAsString)
                                 .collect(toSet())
                 )
         );
-        Future<Set<ClassOrInterfaceDeclaration>> declaredTypesFuture = compilationUnit.compose(
-                cu -> Future.succeededFuture(new HashSet<>(cu.findAll(ClassOrInterfaceDeclaration.class)))
+        Future<Set<TypeDeclaration<?>>> declaredTypesFuture = compilationUnit.compose(cu -> {
+                    final var classDec = new HashSet<TypeDeclaration<?>>(cu.findAll(ClassOrInterfaceDeclaration.class));
+                    final var enumDec = new HashSet<>(cu.findAll(EnumDeclaration.class));
+                    classDec.addAll(enumDec);
+                    return Future.succeededFuture(classDec);
+                }
         );
         Future<Map<ClassVisibility, Set<String>>> classesForVisibility = declaredTypesFuture
                 .compose(classOrInterfaceDeclarations ->
-                    Future.succeededFuture(
-                    classOrInterfaceDeclarations.stream()
-                            .collect(Collectors.groupingBy(ClassVisibility::fromClassDeclaration,
-                                    mapping(ClassOrInterfaceDeclaration::getNameAsString, toSet())))
-                    )
+                        Future.succeededFuture(
+                                classOrInterfaceDeclarations.stream()
+                                        .collect(Collectors.groupingBy(ClassVisibility::fromClassDeclaration,
+                                                mapping(TypeDeclaration::getNameAsString, toSet())))
+                        )
                 );
 
         return Future.all(usedTypesFuture, classesForVisibility)
                 .compose(compositeFuture -> {
-                    @SuppressWarnings("unchecked")
-                    final var dependencyTypes = (Set<String>)compositeFuture.resultAt(0);
-                    @SuppressWarnings("unchecked")
-                    final var declaredTypes = (Map<ClassVisibility, Set<String>>)compositeFuture.resultAt(1);
+                    @SuppressWarnings("unchecked") final var dependencyTypes = (Set<String>) compositeFuture.resultAt(0);
+                    @SuppressWarnings("unchecked") final var declaredTypes = (Map<ClassVisibility, Set<String>>) compositeFuture.resultAt(1);
                     for (final Set<String> classDecSet : declaredTypes.values()) {
                         dependencyTypes.removeAll(classDecSet);
                     }
@@ -69,7 +79,8 @@ public class FutureClassDependencyAnalyzer {
 
     public enum ClassVisibility {
         PUBLIC, PROTECTED, PACKAGE_PROTECTED, PRIVATE;
-        static ClassVisibility fromClassDeclaration(ClassOrInterfaceDeclaration classOrInterfaceDeclaration) {
+
+        static ClassVisibility fromClassDeclaration(TypeDeclaration<?> classOrInterfaceDeclaration) {
             NodeList<Modifier> classModifiers = classOrInterfaceDeclaration.getModifiers();
             if (classModifiers.contains(Modifier.publicModifier())) {
                 return ClassVisibility.PUBLIC;

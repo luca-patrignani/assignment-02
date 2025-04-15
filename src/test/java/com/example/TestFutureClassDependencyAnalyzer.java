@@ -147,4 +147,16 @@ public class TestFutureClassDependencyAnalyzer {
         assertEquals(Set.of(), dependencies.packageProtectedTypes());
         assertEquals(Set.of(), dependencies.dependencies());
     }
+
+    @Test
+    void testEnum() {
+        final String code = """
+            public enum A {}
+        """;
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of("A"), dependencies.publicTypes());
+        assertEquals(Set.of(), dependencies.protectedTypes());
+        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals(Set.of(), dependencies.dependencies());
+    }
 }
