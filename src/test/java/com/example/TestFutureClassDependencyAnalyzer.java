@@ -1,4 +1,5 @@
-import com.example.FutureDependencyAnalyzer;
+package com.example;
+
 import io.vertx.core.Future;
 import org.junit.jupiter.api.Test;
 
@@ -7,11 +8,11 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestFutureDependencyAnalyzer {
+public class TestFutureClassDependencyAnalyzer {
 
-    final FutureDependencyAnalyzer fda = new FutureDependencyAnalyzer();
+    final FutureClassDependencyAnalyzer fda = new FutureClassDependencyAnalyzer();
 
-    private Set<String> getDependencies(String code) {
+    private DepsReport getDependencies(String code) {
         return fda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(code.getBytes())))
                 .result();
     }
@@ -28,8 +29,9 @@ public class TestFutureDependencyAnalyzer {
                 }
             }
         """;
-        final Set<String> dependencies = getDependencies(code);
-        assertEquals(Set.of("C", "String"), dependencies);
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of("C", "String"), dependencies.dependencies());
+        assertEquals(Set.of("Main"), dependencies.publicTypes());
     }
 
     @Test
@@ -45,8 +47,9 @@ public class TestFutureDependencyAnalyzer {
                 }
             }
         """;
-        final Set<String> dependencies = getDependencies(code);
-        assertEquals(Set.of("Object"), dependencies);
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of("Object"), dependencies.dependencies());
+        assertEquals(Set.of("A", "B"), dependencies.publicTypes());
     }
 
     @Test
@@ -58,8 +61,9 @@ public class TestFutureDependencyAnalyzer {
                 void method(Integer i);
             }
         """;
-        final Set<String> dependencies = getDependencies(code);
-        assertEquals(Set.of("Integer"), dependencies);
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of("Integer"), dependencies.dependencies());
+        assertEquals(Set.of("A"), dependencies.publicTypes());
     }
 
     @Test
@@ -73,7 +77,8 @@ public class TestFutureDependencyAnalyzer {
                 }
             }
         """;
-        final Set<String> dependencies = getDependencies(code);
-        assertEquals(Set.of(), dependencies);
+        final var dependencies = getDependencies(code);
+        assertEquals(Set.of(), dependencies.dependencies());
+        assertEquals(Set.of("A"), dependencies.publicTypes());
     }
 }
