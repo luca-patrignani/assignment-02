@@ -29,8 +29,8 @@ public class TestPackageDependencyAnalyzer {
         """;
         final var dependencies2 = getClassDependencies(file2);
         final var pda = new FuturePackageDependencyAnalyzer();
-//        final var dependencies = pda.getPackageDependencies(List.of(dependencies1, dependencies2)).result();
-//        assertEquals(Set.of("C"), dependencies);
+        final var dependencies = pda.getPackageDependencies(List.of(dependencies1, dependencies2)).result();
+        assertEquals(Set.of("C"), dependencies.dependencies());
     }
 
     private Future<DepsReport> getClassDependencies(String file) {
