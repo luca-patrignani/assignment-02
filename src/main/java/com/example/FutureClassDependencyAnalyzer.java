@@ -10,8 +10,8 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
@@ -22,10 +22,7 @@ import io.vertx.core.Future;
 
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -53,8 +50,14 @@ public class FutureClassDependencyAnalyzer {
         );
         Future<Set<String>> usedTypesFuture = compilationUnit.compose(
                 cu -> Future.succeededFuture(
-                        cu.findAll(ClassOrInterfaceType.class).stream().map(ClassOrInterfaceType::resolve)
-
+                        cu.findAll(ClassOrInterfaceType.class).stream()
+                                .flatMap(classOrInterfaceType -> {
+                                    try {
+                                        return Stream.of(classOrInterfaceType.resolve());
+                                    } catch (UnsolvedSymbolException ignored) {
+                                        return Stream.empty();
+                                    }
+                                })
                                 .map(ResolvedType::asReferenceType)
                                 .map(ResolvedReferenceType::getQualifiedName)
                         .collect(toSet())

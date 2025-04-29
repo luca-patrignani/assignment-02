@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPackageDependencyAnalyzer {
 
-    private final FutureClassDependencyAnalyzer cda = new FutureClassDependencyAnalyzer();
+    private final FutureClassDependencyAnalyzer cda = new FutureClassDependencyAnalyzer(null);
 
     @Test
     void testTwoFilePackage() {

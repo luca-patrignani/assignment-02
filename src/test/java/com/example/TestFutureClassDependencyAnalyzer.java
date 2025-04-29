@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestFutureClassDependencyAnalyzer {
 
-    final FutureClassDependencyAnalyzer fda = new FutureClassDependencyAnalyzer(Path.of("src","main","java").toAbsolutePath());
+    final FutureClassDependencyAnalyzer fda = new FutureClassDependencyAnalyzer(Path.of("src","main", "java").toAbsolutePath());
 
     private DepsReport getDependencies(String code) {
         final var dependencies = fda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(code.getBytes())));
@@ -32,8 +32,8 @@ public class TestFutureClassDependencyAnalyzer {
             throw new RuntimeException(e);
         }
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("com.example.D"), dependencies.dependencies());
-        assertEquals(Set.of("A", "B"), dependencies.publicTypes());
+        assertEquals(Set.of("pcd.ass02.foopack.D", "pcd.ass02.foopack2.E", "pcd.ass02.example.A", "pcd.ass02.foopack.B", "pcd.ass02.C"), dependencies.dependencies());
+        assertEquals(Set.of("MyClass"), dependencies.publicTypes());
         assertEquals(Set.of(), dependencies.protectedTypes());
         assertEquals(Set.of(), dependencies.packageProtectedTypes());
 

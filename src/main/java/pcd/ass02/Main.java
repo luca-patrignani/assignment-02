@@ -1,6 +1,10 @@
 package pcd.ass02;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.util.stream.Stream;
+
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
@@ -10,15 +14,32 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.TypeParameter;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.resolution.UnsolvedSymbolException;
+import com.github.javaparser.resolution.types.ResolvedReferenceType;
+import com.github.javaparser.resolution.types.ResolvedType;
+import com.github.javaparser.symbolsolver.JavaSymbolSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
+import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+
+import static java.util.stream.Collectors.toSet;
 
 public class Main {
 
 	public static void main(String[] args) throws Exception  {
 
 		File file = new File("src/main/java/pcd/ass02/MyClass.java");
-		
+
+        CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
+        combinedTypeSolver.add(new ReflectionTypeSolver());
+        combinedTypeSolver.add(new JavaParserTypeSolver(Path.of("src", "main", "java")));
+        JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
+        StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
+        StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
+
 		CompilationUnit cu = StaticJavaParser.parse(file);
 				
 		new VoidVisitorAdapter<Object>() {
@@ -57,7 +78,7 @@ public class Main {
                 for (var p: n.getParameters()) {
                     System.out.println("type " + p.getType().asString() + " (method decl, param type)");
                 }
-                System.out.println("return type: " + n.getType().asString() + " (method decl, return type)");
+                System.out.println("return type: " + n.getType().resolve().asReferenceType().getQualifiedName() + " (method decl, return type)");
             }
             
 			/**
@@ -76,7 +97,7 @@ public class Main {
             public void visit(VariableDeclarator n, Object arg) {
                 super.visit(n, arg);
                 var t = n.getType();
-                System.out.println("type " + n.getType().asString() + " (var decl)");
+                System.out.println("type " + n.getType().resolve().asReferenceType().getQualifiedName() + " (var decl)");
             }
 
 			/**
@@ -102,7 +123,19 @@ public class Main {
                 }
             }
         }.visit(cu,null);
-        
+
+        final var results = cu.findAll(ClassOrInterfaceType.class).stream()
+                .flatMap(classOrInterfaceType -> {
+                    try {
+                        return Stream.of(classOrInterfaceType.resolve());
+                    } catch (UnsolvedSymbolException ignored) {
+                        return Stream.empty();
+                    }
+                })
+                .map(ResolvedType::asReferenceType)
+                .map(ResolvedReferenceType::getQualifiedName)
+                .collect(toSet());
+        System.out.println(results);
 
 	}
 
