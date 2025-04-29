@@ -184,4 +184,5 @@ public class TestFutureClassDependencyAnalyzer {
         assertEquals(Set.of("com.example.D"), dependencies.dependencies());
     }
 
+
 }
