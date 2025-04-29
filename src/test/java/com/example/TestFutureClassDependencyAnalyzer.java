@@ -24,7 +24,7 @@ public class TestFutureClassDependencyAnalyzer {
     }
 
     @Test
-    void testSimple() {
+    void testProfessor() {
         var code = "";
         try {
             code = new String(Files.readAllBytes(Paths.get("src","main","java","pcd","ass02","MyClass.java").toAbsolutePath()));
@@ -34,6 +34,20 @@ public class TestFutureClassDependencyAnalyzer {
         final var dependencies = getDependencies(code);
         assertEquals("pcd.ass02.MyClass", dependencies.name());
         assertEquals(Set.of("pcd.ass02.example", "pcd.ass02.foopack.D", "pcd.ass02.foopack2.E", "pcd.ass02.example.A", "pcd.ass02.foopack.B", "pcd.ass02.C"), dependencies.dependencies());
+
+    }
+
+    @Test
+    void testInnerClassDependency() {
+        var code = "";
+        try {
+            code = new String(Files.readAllBytes(Paths.get("src","main","java","pcd","ass02","foopack2","F.java").toAbsolutePath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        final var dependencies = getDependencies(code);
+        assertEquals("pcd.ass02.foopack2.F", dependencies.name());
+        assertEquals(Set.of("pcd.ass02.foopack2.G","pcd.ass02.foopack2.G.innerG"), dependencies.dependencies());
 
     }
 
@@ -52,7 +66,7 @@ public class TestFutureClassDependencyAnalyzer {
                 """;
         final var dependencies = getDependencies(code);
         assertEquals("com.example.A", dependencies.name());
-        assertEquals(Set.of("java.lang.Object"), dependencies.dependencies());
+        assertEquals(Set.of("java.lang.Object", "com.example.A.B"), dependencies.dependencies());
     }
 
     @Test
@@ -166,7 +180,7 @@ public class TestFutureClassDependencyAnalyzer {
                 """;
         final var dependencies = getDependencies(code);
         assertEquals("B", dependencies.name());
-        assertEquals(Set.of(), dependencies.dependencies());
+        assertEquals(Set.of("B.A"), dependencies.dependencies());
     }
 
     @Test
@@ -181,7 +195,7 @@ public class TestFutureClassDependencyAnalyzer {
                 """;
         final var dependencies = getDependencies(code);
         assertEquals("B", dependencies.name());
-        assertEquals(Set.of("com.example.D"), dependencies.dependencies());
+        assertEquals(Set.of("com.example.D", "B.A"), dependencies.dependencies());
     }
 
 

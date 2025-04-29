@@ -4,36 +4,33 @@ import io.vertx.core.Future;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestPackageDependencyAnalyzer {
 
-    private final FutureClassDependencyAnalyzer cda = new FutureClassDependencyAnalyzer(null);
+
+    private final FuturePackageDependencyAnalyzer pda = new FuturePackageDependencyAnalyzer(Path.of("src","main", "java").toAbsolutePath());
 
     @Test
-    void testTwoFilePackage() {
-        final var file1 = """
-            public class A {
-                public void method() {
-                    final C b = new B();
-                }
-            }
-        """;
-        final var dependencies1 = getClassDependencies(file1);
-        final var file2 = """
-            public class B {
-            }
-        """;
-        final var dependencies2 = getClassDependencies(file2);
-        final var pda = new FuturePackageDependencyAnalyzer();
-        final var dependencies = pda.getPackageDependencies(List.of(dependencies1, dependencies2)).result();
-        assertEquals(Set.of("C"), dependencies.dependencies());
+    void testProfessor() {
+        var packagePath = Paths.get("src","main","java","pcd","ass02","foopack").toAbsolutePath();
+
+        var dependencies = getDependencies(packagePath);
+        assertEquals("pcd.ass02.foopack",dependencies.name());
+        assertEquals(Set.of("pcd.ass02.MyClass","pcd.ass02.foopack.D"),dependencies.dependencies());
+
     }
 
-    private Future<DepsReport> getClassDependencies(String file) {
-        return cda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(file.getBytes())));
+    private DepsReport getDependencies(Path packagePath) {
+        final var dependencies = pda.getPackageDependencies(Future.succeededFuture(packagePath));
+        final var result = dependencies.result();
+        assertNull(dependencies.cause());
+        return result;
     }
 }

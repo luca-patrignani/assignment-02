@@ -1,5 +1,7 @@
 package pcd.ass02.foopack2;
 
-public class E {
+import pcd.ass02.foopack.D;
 
+public class E {
+    D d = new D();
 }

@@ -1,8 +1,10 @@
 package pcd.ass02.foopack2;
 
 public class F {
-    G.innerG g = null;
+    G g = new G();
+
+    G.innerG innerG = new G().new innerG();
     void m() {
-        g.innerMethod();
+        innerG.innerMethod();
     }
 }
