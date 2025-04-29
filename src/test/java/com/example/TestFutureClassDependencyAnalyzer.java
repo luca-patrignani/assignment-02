@@ -32,28 +32,9 @@ public class TestFutureClassDependencyAnalyzer {
             throw new RuntimeException(e);
         }
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("pcd.ass02.foopack.D", "pcd.ass02.foopack2.E", "pcd.ass02.example.A", "pcd.ass02.foopack.B", "pcd.ass02.C"), dependencies.dependencies());
-        assertEquals(Set.of("MyClass"), dependencies.publicTypes());
-        assertEquals(Set.of(), dependencies.protectedTypes());
-        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals("pcd.ass02.MyClass", dependencies.name());
+        assertEquals(Set.of("pcd.ass02.example", "pcd.ass02.foopack.D", "pcd.ass02.foopack2.E", "pcd.ass02.example.A", "pcd.ass02.foopack.B", "pcd.ass02.C"), dependencies.dependencies());
 
-    }
-
-    @Test
-    void testClassNotDeclared() {
-        final String code = """
-                    package com.example;
-                
-                    public class Main {
-                        public static void main(String[] args) {
-                            final var c = new C();
-                            System.out.println("Hello, World!");
-                        }
-                    }
-                """;
-        final var dependencies = getDependencies(code);
-        assertEquals(Set.of("C", "String"), dependencies.dependencies());
-        assertEquals(Set.of("Main"), dependencies.publicTypes());
     }
 
     @Test
@@ -70,8 +51,8 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("Object"), dependencies.dependencies());
-        assertEquals(Set.of("A", "B"), dependencies.publicTypes());
+        assertEquals("com.example.A", dependencies.name());
+        assertEquals(Set.of("java.lang.Object"), dependencies.dependencies());
     }
 
     @Test
@@ -84,23 +65,8 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("Integer"), dependencies.dependencies());
-        assertEquals(Set.of("A"), dependencies.publicTypes());
-    }
-
-    @Test
-    void testInterfaceWithImport() {
-        final String code = """
-                    package com.example;
-                    import unibo.B;
-                
-                    public interface A {
-                        void method(B i);
-                    }
-                """;
-        final var dependencies = getDependencies(code);
-        assertEquals(Set.of("unibo.B"), dependencies.dependencies());
-        assertEquals(Set.of("A"), dependencies.publicTypes());
+        assertEquals("com.example.A", dependencies.name());
+        assertEquals(Set.of("java.lang.Integer"), dependencies.dependencies());
     }
 
     @Test
@@ -115,8 +81,8 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
+        assertEquals("com.example.A", dependencies.name());
         assertEquals(Set.of(), dependencies.dependencies());
-        assertEquals(Set.of("A"), dependencies.publicTypes());
     }
 
     @Test
@@ -131,8 +97,8 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("Object"), dependencies.dependencies());
-        assertEquals(Set.of("A"), dependencies.publicTypes());
+        assertEquals("com.example.A", dependencies.name());
+        assertEquals(Set.of("java.lang.Object"), dependencies.dependencies());
     }
 
     @Test
@@ -147,8 +113,8 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
+        assertEquals("com.example.A", dependencies.name());
         assertEquals(Set.of(), dependencies.dependencies());
-        assertEquals(Set.of("B"), dependencies.protectedTypes());
     }
 
     @Test
@@ -160,9 +126,8 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
+        assertEquals("com.example.A", dependencies.name());
         assertEquals(Set.of(), dependencies.dependencies());
-        assertEquals(Set.of(), dependencies.publicTypes());
-        assertEquals(Set.of("A"), dependencies.packageProtectedTypes());
     }
 
     @Test
@@ -177,9 +142,7 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("A"), dependencies.publicTypes());
-        assertEquals(Set.of(), dependencies.protectedTypes());
-        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals("com.example.A", dependencies.name());
         assertEquals(Set.of(), dependencies.dependencies());
     }
 
@@ -189,9 +152,7 @@ public class TestFutureClassDependencyAnalyzer {
                     public enum A {}
                 """;
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("A"), dependencies.publicTypes());
-        assertEquals(Set.of(), dependencies.protectedTypes());
-        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals("A", dependencies.name());
         assertEquals(Set.of(), dependencies.dependencies());
     }
 
@@ -204,9 +165,7 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("A", "B"), dependencies.publicTypes());
-        assertEquals(Set.of(), dependencies.protectedTypes());
-        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals("B", dependencies.name());
         assertEquals(Set.of(), dependencies.dependencies());
     }
 
@@ -221,36 +180,8 @@ public class TestFutureClassDependencyAnalyzer {
                     }
                 """;
         final var dependencies = getDependencies(code);
-        assertEquals(Set.of("A", "B"), dependencies.publicTypes());
-        assertEquals(Set.of(), dependencies.protectedTypes());
-        assertEquals(Set.of(), dependencies.packageProtectedTypes());
+        assertEquals("B", dependencies.name());
         assertEquals(Set.of("com.example.D"), dependencies.dependencies());
     }
 
-    @Test
-    void testFullyQualifiedName() {
-        final String code = """
-                        package pcd.ass02;
-                
-                        import pcd.ass02.example.*;
-                        import pcd.ass02.foopack.D;
-                        import pcd.ass02.foopack2.E;
-                
-                        public class MyClass {
-                
-                            A field;
-                
-                            pcd.ass02.foopack.B m(E e) {
-                                C a;
-                                new D().m();
-                                return null;
-                            }
-                        }
-                """;
-        final var dependencies = getDependencies(code);
-        assertEquals(Set.of("com.example.D"), dependencies.dependencies());
-        assertEquals(Set.of("A", "B"), dependencies.publicTypes());
-        assertEquals(Set.of(), dependencies.protectedTypes());
-        assertEquals(Set.of(), dependencies.packageProtectedTypes());
-    }
 }

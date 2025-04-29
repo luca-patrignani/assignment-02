@@ -11,7 +11,12 @@ import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.resolution.Resolvable;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
+import com.github.javaparser.resolution.declarations.ResolvedEnumDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedRecordDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedTypeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedReferenceType;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
@@ -20,6 +25,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeS
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import io.vertx.core.Future;
 
+import javax.lang.model.type.DeclaredType;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.*;
@@ -41,7 +47,7 @@ public class FutureClassDependencyAnalyzer {
     public Future<DepsReport> getClassDependencies(Future<InputStream> classCode) {
         Future<CompilationUnit> compilationUnit = classCode
                 .compose(code -> Future.succeededFuture(StaticJavaParser.parse(code)));
-        final var importedTypesFuture = compilationUnit.compose(
+        final Future<Set<String>> importedSymbolsFuture = compilationUnit.compose(
                 cu -> Future.succeededFuture(
                     cu.findAll(ImportDeclaration.class).stream()
                             .map(ImportDeclaration::getNameAsString)
@@ -63,56 +69,37 @@ public class FutureClassDependencyAnalyzer {
                         .collect(toSet())
                 )
         );
-        Future<Set<TypeDeclaration<?>>> declaredTypesFuture = compilationUnit.compose(cu -> {
-                    final var classDec = new HashSet<TypeDeclaration<?>>(cu.findAll(ClassOrInterfaceDeclaration.class));
-                    final var enumDec = new HashSet<>(cu.findAll(EnumDeclaration.class));
-                    final var recordDec = new HashSet<>(cu.findAll(RecordDeclaration.class));
-                    classDec.addAll(enumDec);
-                    classDec.addAll(recordDec);
-                    return Future.succeededFuture(classDec);
-                }
+        final Future<Set<String>> definedClasses = compilationUnit.compose(
+                cu -> Future.succeededFuture(
+                        Stream.of(
+                            cu.findAll(ClassOrInterfaceDeclaration.class).stream().map(ClassOrInterfaceDeclaration::resolve),
+                            cu.findAll(EnumDeclaration.class).stream().map(EnumDeclaration::resolve),
+                            cu.findAll(RecordDeclaration.class).stream().map(RecordDeclaration::resolve)
+                        ).flatMap(s -> s)
+                                .map(ResolvedReferenceTypeDeclaration::getQualifiedName)
+                                .collect(toSet())
+                )
         );
-        Future<Map<ClassVisibility, Set<String>>> classesForVisibility = declaredTypesFuture
-                .compose(classOrInterfaceDeclarations ->
-                        Future.succeededFuture(
-                                classOrInterfaceDeclarations.stream()
-                                        .collect(Collectors.groupingBy(ClassVisibility::fromClassDeclaration,
-                                                mapping(TypeDeclaration::getNameAsString, toSet())))
-                        )
-                );
-
-        return Future.all(usedTypesFuture, classesForVisibility)
-                .compose(compositeFuture -> {
-                    @SuppressWarnings("unchecked") final var dependencyTypes = (Set<String>) compositeFuture.resultAt(0);
-                    @SuppressWarnings("unchecked") final var declaredTypes = (Map<ClassVisibility, Set<String>>) compositeFuture.resultAt(1);
-                    for (final Set<String> classDecSet : declaredTypes.values()) {
-                        dependencyTypes.removeAll(classDecSet);
-                    }
-                    return Future.succeededFuture(new DepsReport(
-                            declaredTypes.getOrDefault(ClassVisibility.PUBLIC, Set.of()),
-                            declaredTypes.getOrDefault(ClassVisibility.PROTECTED, Set.of()),
-                            declaredTypes.getOrDefault(ClassVisibility.PACKAGE_PROTECTED, Set.of()),
-                            dependencyTypes
-                    ));
-                });
+       @SuppressWarnings("OptionalGetWithoutIsPresent")
+       final Future<String> topClassName = compilationUnit.compose(
+               cu -> Future.succeededFuture(
+                       (String)cu.findFirst(TypeDeclaration.class)
+                           .flatMap(TypeDeclaration::getFullyQualifiedName)
+                           .get()
+               )
+       );
+       return Future.all(importedSymbolsFuture, usedTypesFuture, definedClasses, topClassName)
+               .compose(compositeFuture -> {
+                   @SuppressWarnings("unchecked")
+                   final var dependencies = new HashSet<>((Set<String>)compositeFuture.resultAt(0));
+                   dependencies.addAll(compositeFuture.resultAt(1));
+                   final Set<String> dc = compositeFuture.resultAt(2);
+                   dependencies.removeAll(dc);
+                   final String className = compositeFuture.resultAt(3);
+                   return Future.succeededFuture(new DepsReport(
+                           className,
+                           dependencies
+                   ));
+               });
     }
-
-    public enum ClassVisibility {
-        PUBLIC, PROTECTED, PACKAGE_PROTECTED, PRIVATE;
-
-        static ClassVisibility fromClassDeclaration(TypeDeclaration<?> classOrInterfaceDeclaration) {
-            NodeList<Modifier> classModifiers = classOrInterfaceDeclaration.getModifiers();
-            if (classModifiers.contains(Modifier.publicModifier())) {
-                return ClassVisibility.PUBLIC;
-            }
-            if (classModifiers.contains(Modifier.protectedModifier())) {
-                return ClassVisibility.PROTECTED;
-            }
-            if (classModifiers.contains(Modifier.privateModifier())) {
-                return ClassVisibility.PRIVATE;
-            }
-            return ClassVisibility.PACKAGE_PROTECTED;
-        }
-    }
-
 }
