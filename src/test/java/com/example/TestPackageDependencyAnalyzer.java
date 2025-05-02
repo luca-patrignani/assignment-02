@@ -29,6 +29,8 @@ public class TestPackageDependencyAnalyzer {
 
     private DepsReport getDependencies(Path packagePath) {
         final var dependencies = pda.getPackageDependencies(Future.succeededFuture(packagePath));
+        // waiting for the future completion, who cares if it's busy-waiting
+        while (!dependencies.isComplete()) {}
         final var result = dependencies.result();
         assertNull(dependencies.cause());
         return result;

@@ -22,29 +22,35 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toSet;
 
 public class FuturePackageDependencyAnalyzer {
-        private final FutureClassDependencyAnalyzer cda;
-        private final Vertx vertx = Vertx.vertx();
-        private final Path root;
+    private final FutureClassDependencyAnalyzer cda;
+    private final Vertx vertx = Vertx.vertx();
+    private final Path root;
+
     public FuturePackageDependencyAnalyzer(final Path rootDirectory) {
         this.root = rootDirectory;
         cda = new FutureClassDependencyAnalyzer(rootDirectory.toAbsolutePath());
     }
+
     public Future<DepsReport> getPackageDependencies(Future<Path> packagePath) {
         Future<Set<String>> allDep = packagePath
                 .compose(dirPath -> vertx.fileSystem().readDir(dirPath.toString()))
+                .compose(strings -> FuturesHelper.all(
+                        strings.stream()
+                                .map(vertx.fileSystem()::readFile)
+                                .toList()
+                ))
                 .compose(f -> {
-                    Set<Future<Set<String>>> futures = f.stream()
-                        .map(s -> cda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(s.getBytes()))))
-                        .map( fdr -> fdr.map(DepsReport::dependencies))
-                        .collect(toSet());
-                return FuturesHelper.all(futures.stream().toList());
+                            List<Future<Set<String>>> futures = f.stream()
+                                    .map(s -> cda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(s.getBytes()))))
+                                    .map(fdr -> fdr.map(DepsReport::dependencies))
+                                    .toList();
+                            return FuturesHelper.all(futures);
                         }
                 ).map(x -> x.stream().flatMap(Set::stream).collect(toSet()));
         var packageName = Future.succeededFuture(getPackageName(packagePath.result()));
-        return Future.all(packageName,allDep)
+        return Future.all(packageName, allDep)
                 .compose(compositeFuture -> {
-                    @SuppressWarnings("unchecked")
-                    final var dependencies = new HashSet<>((Set<String>)compositeFuture.resultAt(1));
+                    @SuppressWarnings("unchecked") final var dependencies = new HashSet<>((Set<String>) compositeFuture.resultAt(1));
 
                     final String pName = compositeFuture.resultAt(0);
 
