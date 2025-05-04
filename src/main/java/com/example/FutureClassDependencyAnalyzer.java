@@ -14,6 +14,9 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSol
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -23,18 +26,25 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.*;
 
 public class FutureClassDependencyAnalyzer {
-    public FutureClassDependencyAnalyzer(final Path rootDirectory) {
+
+    private final Vertx vertx;
+
+    public FutureClassDependencyAnalyzer(final Path rootDirectory, final Vertx vertx) {
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
         combinedTypeSolver.add(new JavaParserTypeSolver(rootDirectory));
         JavaSymbolSolver symbolSolver = new JavaSymbolSolver(combinedTypeSolver);
         StaticJavaParser.getParserConfiguration().setSymbolResolver(symbolSolver);
         StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
+        this.vertx = vertx;
     }
 
-    public Future<DepsReport> getClassDependencies(Future<InputStream> classCode) {
-        Future<CompilationUnit> compilationUnit = classCode
-                .compose(code -> Future.succeededFuture(StaticJavaParser.parse(code)));
+    public FutureClassDependencyAnalyzer(final Path rootDirectory) {
+        this(rootDirectory, Vertx.vertx());
+    }
+
+    public Future<DepsReport> getClassDependencies(Future<Buffer> classCode) {
+        Future<CompilationUnit> compilationUnit = classCode.compose(code -> Future.succeededFuture(StaticJavaParser.parse(code.toString())));
         final Future<Set<String>> importedSymbolsFuture = compilationUnit.compose(
                 cu -> Future.succeededFuture(
                     cu.findAll(ImportDeclaration.class).stream()

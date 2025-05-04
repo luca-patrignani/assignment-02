@@ -1,6 +1,7 @@
 package com.example;
 
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -17,7 +18,7 @@ public class TestFutureClassDependencyAnalyzer {
     final FutureClassDependencyAnalyzer fda = new FutureClassDependencyAnalyzer(Path.of("src","main", "java").toAbsolutePath());
 
     private DepsReport getDependencies(String code) {
-        final var dependencies = fda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(code.getBytes())));
+        final var dependencies = fda.getClassDependencies(Future.succeededFuture(Buffer.buffer(code)));
         final var result = dependencies.result();
         assertNull(dependencies.cause());
         return result;

@@ -37,15 +37,13 @@ public class FuturePackageDependencyAnalyzer {
                 .compose(strings -> FuturesHelper.all(
                         strings.stream()
                                 .map(vertx.fileSystem()::readFile)
+                                .map(cda::getClassDependencies)
                                 .toList()
                 ))
-                .compose(f -> {
-                            List<Future<Set<String>>> futures = f.stream()
-                                    .map(s -> cda.getClassDependencies(Future.succeededFuture(new ByteArrayInputStream(s.getBytes()))))
-                                    .map(fdr -> fdr.map(DepsReport::dependencies))
-                                    .toList();
-                            return FuturesHelper.all(futures);
-                        }
+                .compose(f ->
+                            Future.succeededFuture(f.stream()
+                                    .map(DepsReport::dependencies)
+                                    .toList())
                 ).map(x -> x.stream().flatMap(Set::stream).collect(toSet()));
         var packageName = Future.succeededFuture(getPackageName(packagePath.result()));
         return Future.all(packageName, allDep)
