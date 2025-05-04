@@ -21,7 +21,16 @@ public class TestPackageDependencyAnalyzer {
 
         var dependencies = getDependencies(packagePath);
         assertEquals("pcd.ass02.foopack",dependencies.name());
-        assertEquals(Set.of(),dependencies.dependencies());
+        assertEquals(Set.of(), dependencies.dependencies());
+    }
+
+    @Test
+    void testProfessorFoopack2() {
+        var packagePath = Paths.get("src","main","java","pcd","ass02","foopack2").toAbsolutePath();
+
+        var dependencies = getDependencies(packagePath);
+        assertEquals("pcd.ass02.foopack2",dependencies.name());
+        assertEquals(Set.of("pcd.ass02.foopack.D", "pcd.ass02.MyClass"), dependencies.dependencies());
     }
 
     private DepsReport getDependencies(Path packagePath) {
