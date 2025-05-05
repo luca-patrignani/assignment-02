@@ -41,6 +41,20 @@ public abstract class TestClassDependencyAnalyzer {
     }
 
     @Test
+    void testSamePackage() {
+        var code = "";
+        try {
+            code = new String(Files.readAllBytes(Paths.get("src", "main", "java", "pcd", "ass02", "foopack3", "L.java").toAbsolutePath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        final var dependencies = getDependencies(code);
+        assertEquals("pcd.ass02.foopack3.L", dependencies.name());
+        assertEquals(Set.of("pcd.ass02.foopack3.I"), dependencies.dependencies());
+
+    }
+
+    @Test
     void testClassDeclaredLocally() {
         final String code = """
                     package com.example;

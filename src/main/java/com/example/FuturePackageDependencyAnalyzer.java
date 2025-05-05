@@ -13,6 +13,7 @@ import io.vertx.core.Vertx;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,26 +33,31 @@ public class FuturePackageDependencyAnalyzer {
     }
 
     public Future<DepsReport> getPackageDependencies(Future<Path> packagePath) {
-        Future<Set<String>> allDep = packagePath
+        Future<List<DepsReport>> allDepsReport = packagePath
                 .compose(dirPath -> vertx.fileSystem().readDir(dirPath.toString()))
                 .compose(strings -> FuturesHelper.all(
                         strings.stream()
                                 .map(vertx.fileSystem()::readFile)
                                 .map(cda::getClassDependencies)
                                 .toList()
-                ))
-                .compose(f ->
-                            Future.succeededFuture(f.stream()
-                                    .map(DepsReport::dependencies)
-                                    .toList())
-                ).map(x -> x.stream().flatMap(Set::stream).collect(toSet()));
+                ));
+
+        Future<Set<String>> allDependencies = allDepsReport
+                                    .compose(f ->
+                                                Future.succeededFuture(f.stream()
+                                                        .map(DepsReport::dependencies)
+                                                        .toList())
+                                    ).map(x -> x.stream().flatMap(Set::stream).collect(toSet()));
+
+        Future<List<String>> allNames = allDepsReport.compose(f ->
+                Future.succeededFuture(f.stream().map(DepsReport::name).toList()));
         var packageName = Future.succeededFuture(getPackageName(packagePath.result()));
-        return Future.all(packageName, allDep)
+        return Future.all(packageName, allDependencies, allNames)
                 .compose(compositeFuture -> {
                     @SuppressWarnings("unchecked") final var dependencies = new HashSet<>((Set<String>) compositeFuture.resultAt(1));
-
+                    @SuppressWarnings("unchecked") final var packageInnerDep = new ArrayList<>((List<String>) compositeFuture.resultAt(2));
                     final String pName = compositeFuture.resultAt(0);
-
+                    packageInnerDep.forEach(dependencies::remove);
                     return Future.succeededFuture(new DepsReport(
                             pName,
                             dependencies

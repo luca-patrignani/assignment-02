@@ -33,6 +33,15 @@ public class TestPackageDependencyAnalyzer {
         assertEquals(Set.of("pcd.ass02.foopack.D", "pcd.ass02.MyClass"), dependencies.dependencies());
     }
 
+    @Test
+    void testProfessorFoopack3() {
+        var packagePath = Paths.get("src","main","java","pcd","ass02","foopack3").toAbsolutePath();
+
+        var dependencies = getDependencies(packagePath);
+        assertEquals("pcd.ass02.foopack3",dependencies.name());
+        assertEquals(Set.of(), dependencies.dependencies());
+    }
+
     private DepsReport getDependencies(Path packagePath) {
         final var dependencies = pda.getPackageDependencies(Future.succeededFuture(packagePath));
         // waiting for the future completion, who cares if it's blocking
