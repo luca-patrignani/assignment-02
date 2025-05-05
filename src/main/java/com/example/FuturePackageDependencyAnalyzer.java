@@ -6,9 +6,11 @@ import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.file.FileSystem;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -24,7 +26,7 @@ import static java.util.stream.Collectors.toSet;
 
 public class FuturePackageDependencyAnalyzer {
     private final FutureClassDependencyAnalyzer cda;
-    private final Vertx vertx = Vertx.vertx();
+    private final FileSystem fs = Vertx.vertx().fileSystem();
     private final Path root;
 
     public FuturePackageDependencyAnalyzer(final Path rootDirectory) {
@@ -33,37 +35,55 @@ public class FuturePackageDependencyAnalyzer {
     }
 
     public Future<DepsReport> getPackageDependencies(Future<Path> packagePath) {
-        Future<List<DepsReport>> allDepsReport = packagePath
-                .compose(dirPath -> vertx.fileSystem().readDir(dirPath.toString()))
-                .compose(strings -> FuturesHelper.all(
-                        strings.stream()
-                                .map(vertx.fileSystem()::readFile)
-                                .map(cda::getClassDependencies)
-                                .toList()
-                ));
-
-        Future<Set<String>> allDependencies = allDepsReport
-                                    .compose(f ->
-                                                Future.succeededFuture(f.stream()
-                                                        .map(DepsReport::dependencies)
-                                                        .toList())
-                                    ).map(x -> x.stream().flatMap(Set::stream).collect(toSet()));
-
-        Future<List<String>> allNames = allDepsReport.compose(f ->
-                Future.succeededFuture(f.stream().map(DepsReport::name).toList()));
         var packageName = Future.succeededFuture(getPackageName(packagePath.result()));
-        return Future.all(packageName, allDependencies, allNames)
+        Future<Set<String>> allDependencies = packagePath
+                .compose(dirPath -> readAllFiles(dirPath.toString()))
+                .compose(allFiles -> FuturesHelper.all(
+                        allFiles.stream()
+                                .map(fs::readFile)
+                                .map(cda::getClassDependencies)
+                                .toList()))
+                .compose(f -> Future.succeededFuture(f.stream()
+                                                        .map(DepsReport::dependencies)
+                                                        .toList()))
+                .map(x -> x.stream()
+                                            .flatMap(Set::stream)
+                                            .filter(s -> !s.contains(packageName.result()))
+                                            .collect(toSet()));
+
+        return Future.all(packageName, allDependencies)
                 .compose(compositeFuture -> {
                     @SuppressWarnings("unchecked") final var dependencies = new HashSet<>((Set<String>) compositeFuture.resultAt(1));
-                    @SuppressWarnings("unchecked") final var packageInnerDep = new ArrayList<>((List<String>) compositeFuture.resultAt(2));
                     final String pName = compositeFuture.resultAt(0);
-                    packageInnerDep.forEach(dependencies::remove);
                     return Future.succeededFuture(new DepsReport(
                             pName,
                             dependencies
                     ));
                 });
 
+    }
+
+    public Future<List<String>> readAllFiles(String dirPath) {
+        return fs.readDir(dirPath).compose(entries -> {
+
+
+            List<Future<List<String>>> futures = entries.stream().map(entry ->
+                    fs.props(entry).compose(props -> {
+                        if (props.isDirectory()) {
+                            return readAllFiles(entry);
+                        } else {
+                            return Future.succeededFuture(List.of(entry));
+                        }
+                    })
+            ).collect(Collectors.toList());
+
+            // Combina tutto in un solo future
+            return FuturesHelper.all(futures).map(cf ->
+                    cf.stream()
+                            .flatMap(obj -> ((List<String>) obj).stream())
+                            .collect(Collectors.toList())
+            );
+        });
     }
 
     private String getPackageName(Path directoryPath) {
