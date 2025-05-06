@@ -11,10 +11,6 @@ public class TestRxPackageDependencyAnalyzer extends TestPackageDependencyAnalyz
     private final RxDependencyAnalyzer pda = new RxDependencyAnalyzer(Path.of("src","main", "java").toAbsolutePath());
     @Override
     protected DepsReport getDependencies(Path packagePath) {
-        RxDepsReport result;
-        result = pda.getPackageDependencies(packagePath).blockingFirst();
-        Set<String> dependencies = new HashSet<>();
-        result.dependencies().blockingSubscribe(dependencies::add);
-        return new DepsReport(result.name(),dependencies);
+        return pda.getPackageDependencies(packagePath).blockingFirst();
     }
 }

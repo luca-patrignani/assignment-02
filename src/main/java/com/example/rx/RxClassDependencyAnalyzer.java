@@ -1,6 +1,7 @@
 package com.example.rx;
 
 
+import com.example.DepsReport;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.ImportDeclaration;
@@ -17,6 +18,8 @@ import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
 import java.nio.file.Path;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RxClassDependencyAnalyzer {
@@ -30,18 +33,15 @@ public class RxClassDependencyAnalyzer {
         StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
     }
 
-    public Flowable<RxDepsReport> getClassDependencies(Flowable<String> classCode) {
+    public Flowable<DepsReport> getClassDependencies(Flowable<String> classCode) {
         return classCode.map(StaticJavaParser::parse)
+                .subscribeOn(Schedulers.computation())
                 .map(compilationUnit -> {
-                    final Flowable<String> importedSymbols =
-                            Flowable.fromStream(compilationUnit
-                                    .findAll(ImportDeclaration.class).stream()
-                                    .map(ImportDeclaration::getNameAsString)
-                            .distinct());
-
-                    final Flowable<String> usedTypes =
-                            Flowable.fromStream(compilationUnit
-                                            .findAll(ClassOrInterfaceType.class).stream()
+                    final Stream<String> importedSymbols =
+                            compilationUnit.findAll(ImportDeclaration.class).stream()
+                                    .map(ImportDeclaration::getNameAsString);
+                    final Stream<String> usedTypes =
+                            compilationUnit.findAll(ClassOrInterfaceType.class).stream()
                             .flatMap(classOrInterfaceType -> {
                                 try {
                                     return Stream.of(classOrInterfaceType.resolve());
@@ -50,11 +50,11 @@ public class RxClassDependencyAnalyzer {
                                 }
                             })
                             .map(ResolvedType::asReferenceType)
-                            .map(ResolvedReferenceType::getQualifiedName));
+                            .map(ResolvedReferenceType::getQualifiedName);
                     final String className = (String) compilationUnit.findFirst(TypeDeclaration.class)
                             .flatMap(TypeDeclaration::getFullyQualifiedName)
                             .get();
-                    return new RxDepsReport(className,Flowable.merge(usedTypes,importedSymbols).distinct());
-                }).subscribeOn(Schedulers.computation());
+                    return new DepsReport(className, Stream.concat(importedSymbols, usedTypes).collect(Collectors.toSet()));
+                });
     }
 }
