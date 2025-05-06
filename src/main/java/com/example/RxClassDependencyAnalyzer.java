@@ -14,6 +14,7 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSol
 import com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
 import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 import java.nio.file.Path;
 import java.util.Set;
@@ -32,13 +33,18 @@ public class RxClassDependencyAnalyzer {
         StaticJavaParser.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
     }
 
-    public Flowable<DepsReport> getClassDependencies(Flowable<String> classCode) {
+    public Flowable<RxDepsReport> getClassDependencies(Flowable<String> classCode) {
         return classCode.map(StaticJavaParser::parse)
                 .map(compilationUnit -> {
-                    final Set<String> importedSymbols = compilationUnit.findAll(ImportDeclaration.class).stream()
-                            .map(ImportDeclaration::getNameAsString)
-                            .collect(toSet());
-                    final Set<String> usedTypes = compilationUnit.findAll(ClassOrInterfaceType.class).stream()
+                    final Flowable<String> importedSymbols =
+                            Flowable.fromStream(compilationUnit
+                                    .findAll(ImportDeclaration.class).stream()
+                                    .map(ImportDeclaration::getNameAsString)
+                            .distinct());
+
+                    final Flowable<String> usedTypes =
+                            Flowable.fromStream(compilationUnit
+                                            .findAll(ClassOrInterfaceType.class).stream()
                             .flatMap(classOrInterfaceType -> {
                                 try {
                                     return Stream.of(classOrInterfaceType.resolve());
@@ -47,17 +53,11 @@ public class RxClassDependencyAnalyzer {
                                 }
                             })
                             .map(ResolvedType::asReferenceType)
-                            .map(ResolvedReferenceType::getQualifiedName)
-                            .collect(toSet());
-                    importedSymbols.addAll(usedTypes);
+                            .map(ResolvedReferenceType::getQualifiedName));
                     final String className = (String) compilationUnit.findFirst(TypeDeclaration.class)
                             .flatMap(TypeDeclaration::getFullyQualifiedName)
                             .get();
-                    importedSymbols.remove(className);
-                    return new DepsReport(
-                            className,
-                            importedSymbols
-                    );
-                });
+                    return new RxDepsReport(className,Flowable.merge(usedTypes,importedSymbols).distinct());
+                }).subscribeOn(Schedulers.computation());
     }
 }

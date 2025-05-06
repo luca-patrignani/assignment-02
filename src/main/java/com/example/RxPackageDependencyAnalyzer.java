@@ -7,19 +7,18 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Set;
 
 public class RxPackageDependencyAnalyzer {
 
     private final RxClassDependencyAnalyzer cda;
     private final Path root;
 
-    public RxPackageDependencyAnalyzer(final Path rootDirectory, Path root) {
+    public RxPackageDependencyAnalyzer(final Path rootDirectory) {
         cda = new RxClassDependencyAnalyzer(rootDirectory.toAbsolutePath());
-        this.root = root;
+        this.root = rootDirectory;
     }
 
-    public Flowable<DepsReport> getPackageDependencies(Path packagePath) throws IOException {
+    public Flowable<RxDepsReport> getPackageDependencies(Path packagePath) throws IOException {
         final var packageName = getPackageName(packagePath);
         final Flowable<String> dependencies;
         try {
@@ -27,8 +26,7 @@ public class RxPackageDependencyAnalyzer {
                     .fromStream(Files.walk(packagePath).filter(Files::isRegularFile))
                     .map(f -> Flowable.fromCallable(() -> Files.readString(f)).subscribeOn(Schedulers.io()))
                     .flatMap(cda::getClassDependencies)
-                    .flatMap(dr -> Flowable.fromCallable(dr::dependencies))
-                    .flatMap(strings -> Flowable.fromStream(strings.stream()))
+                    .flatMap(RxDepsReport::dependencies)
                     .filter(s -> !s.contains(packageName))
                     .distinct()
 
@@ -37,7 +35,7 @@ public class RxPackageDependencyAnalyzer {
             return Flowable.error(e);
         }
 
-        return Flowable.fromCallable(() -> new DepsReport(packageName,Set.of("")));
+        return Flowable.fromCallable(() -> new RxDepsReport(packageName,dependencies));
     }
 
     private String getPackageName(Path directoryPath) {
