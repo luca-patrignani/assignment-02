@@ -1,11 +1,10 @@
-package com.example;
+package com.example.future;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class FuturesHelper {
     public static <A> Future<List<A>> all(List<Future<A>> futures) {

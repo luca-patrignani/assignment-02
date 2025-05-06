@@ -1,15 +1,11 @@
-package com.example;
+package com.example.future;
 
+import com.example.DepsReport;
+import com.example.TestClassDependencyAnalyzer;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
-import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 

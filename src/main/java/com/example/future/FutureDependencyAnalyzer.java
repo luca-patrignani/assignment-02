@@ -1,5 +1,6 @@
-package com.example;
+package com.example.future;
 
+import com.example.DepsReport;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 

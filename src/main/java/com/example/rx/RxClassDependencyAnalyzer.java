@@ -1,4 +1,4 @@
-package com.example;
+package com.example.rx;
 
 
 import com.github.javaparser.ParserConfiguration;
@@ -17,10 +17,7 @@ import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
 import java.nio.file.Path;
-import java.util.Set;
 import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toSet;
 
 public class RxClassDependencyAnalyzer {
 

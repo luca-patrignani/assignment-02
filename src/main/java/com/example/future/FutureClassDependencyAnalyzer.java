@@ -1,5 +1,6 @@
-package com.example;
+package com.example.future;
 
+import com.example.DepsReport;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;

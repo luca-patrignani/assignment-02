@@ -1,5 +1,7 @@
-package com.example;
+package com.example.future;
 
+import com.example.DepsReport;
+import com.example.TestPackageDependencyAnalyzer;
 import io.vertx.core.Future;
 
 import java.nio.file.Path;

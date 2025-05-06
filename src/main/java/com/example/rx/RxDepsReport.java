@@ -1,4 +1,4 @@
-package com.example;
+package com.example.rx;
 
 import io.reactivex.rxjava3.core.Flowable;
 

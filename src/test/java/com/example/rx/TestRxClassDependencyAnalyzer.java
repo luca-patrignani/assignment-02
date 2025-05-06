@@ -1,5 +1,7 @@
-package com.example;
+package com.example.rx;
 
+import com.example.DepsReport;
+import com.example.TestClassDependencyAnalyzer;
 import io.reactivex.rxjava3.core.Flowable;
 
 import java.nio.file.Path;
