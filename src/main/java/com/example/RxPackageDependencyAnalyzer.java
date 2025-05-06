@@ -37,7 +37,7 @@ public class RxPackageDependencyAnalyzer {
             return Flowable.error(e);
         }
 
-        return Flowable.fromCallable(() -> new DepsReport(packageName,Set.of(""));
+        return Flowable.fromCallable(() -> new DepsReport(packageName,Set.of("")));
     }
 
     private String getPackageName(Path directoryPath) {
