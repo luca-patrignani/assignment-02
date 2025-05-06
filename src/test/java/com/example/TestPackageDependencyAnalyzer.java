@@ -1,6 +1,5 @@
 package com.example;
 
-import io.vertx.core.Future;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -8,12 +7,10 @@ import java.nio.file.Paths;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class TestPackageDependencyAnalyzer {
+public abstract class TestPackageDependencyAnalyzer {
 
-
-    private final FutureDependencyAnalyzer pda = new FutureDependencyAnalyzer(Path.of("src","main", "java").toAbsolutePath());
+    protected abstract DepsReport getDependencies(Path packagePath);
 
     @Test
     void testProfessorFoopack() {
@@ -50,11 +47,4 @@ public class TestPackageDependencyAnalyzer {
         assertEquals(Set.of("java.lang.Integer"), dependencies.dependencies());
     }
 
-    private DepsReport getDependencies(Path packagePath) {
-        final var dependencies = pda.getPackageDependencies(packagePath);
-        // waiting for the future completion, who cares if it's blocking
-        final DepsReport result = Future.await(dependencies);
-        assertNull(dependencies.cause());
-        return result;
-    }
 }
