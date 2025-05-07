@@ -39,8 +39,3 @@ The deliverable must be a zipped folder `Assignment-02`, to be submitted on the 
 	- A brief analsysis of the problem, focusing in particular aspects that are relevant from concurrent point of view.
 	- A description of the adopted design, the strategy and architecture.
 	- A description of the behaviour of the system using one or multiple Petri Nets, choosing the proper level of abstraction.
-
-
-## Starting the GUI
-```docker run -d --name mermaid-server -p 80:7777 tomwright/mermaid-server:latest```
-
