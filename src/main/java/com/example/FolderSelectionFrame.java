@@ -2,8 +2,6 @@ package com.example;
 
 import com.example.rx.RxDependencyAnalyzer;
 import guru.nidi.graphviz.attribute.Rank;
-import guru.nidi.graphviz.attribute.Style;
-import guru.nidi.graphviz.attribute.Color;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
 import guru.nidi.graphviz.engine.Renderer;
@@ -68,6 +66,7 @@ class FolderSelectionFrame extends JFrame {
 
         reports.subscribe(
                 depsReport -> {
+                    Thread.sleep(2000);
                     addNodeToGraph(depsReport);
                     updateGraphImage();
                     },
@@ -127,7 +126,7 @@ class FolderSelectionFrame extends JFrame {
     private void updateGraphImage() {
         SwingUtilities.invokeLater(() -> {
             try {
-                Renderer gv = Graphviz.fromGraph(rootGraph).render(Format.SVG);
+                Renderer gv = Graphviz.fromGraph(rootGraph.graphAttrs().add(attr("dpi",100))).render(Format.PNG);
                 ImageIcon icon = new ImageIcon(gv.toImage());
                 graphLabel.setIcon(icon);
                 graphLabel.revalidate();
@@ -142,12 +141,14 @@ class FolderSelectionFrame extends JFrame {
 
         // Split the FQN by dots
         String[] segments = fqn.split("\\.");
-
+        var result = "";
         // Iterate over the segments in reverse order
-        for (int i = segments.length - 1; i >= 0; i--) {
+        for (int i = 0; i <=segments.length - 1; i++) {
             // Return the first segment that doesn't start with an uppercase letter
             if (!Character.isUpperCase(segments[i].charAt(0))) {
-                return segments[i];
+                result = result.concat(segments[i]+".");
+            } else {
+                return result.substring(0,result.length()-1);
             }
         }
 
