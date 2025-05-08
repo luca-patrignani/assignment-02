@@ -5,11 +5,11 @@ public class G {
     }
 
     public void method() {
-        var g = new innerG();
+        var g = new InnerG();
         g.innerMethod();
     }
 
-    public class innerG {
+    public class InnerG {
         public void innerMethod() {}
     }
 }

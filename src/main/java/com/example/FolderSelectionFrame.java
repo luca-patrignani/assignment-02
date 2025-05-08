@@ -1,6 +1,9 @@
 package com.example;
 
 import com.example.rx.RxDependencyAnalyzer;
+import guru.nidi.graphviz.attribute.Rank;
+import guru.nidi.graphviz.attribute.Style;
+import guru.nidi.graphviz.attribute.Color;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
 import guru.nidi.graphviz.engine.Renderer;
@@ -14,6 +17,7 @@ import java.awt.*;
 
 import static guru.nidi.graphviz.attribute.Attributes.attr;
 import static guru.nidi.graphviz.attribute.Attributes.attrs;
+import static guru.nidi.graphviz.attribute.Rank.RankDir.TOP_TO_BOTTOM;
 import static guru.nidi.graphviz.model.Factory.*;
 import java.nio.file.Path;
 import java.util.*;
@@ -24,7 +28,10 @@ class FolderSelectionFrame extends JFrame {
     private final List<DepsReport> graphData = new ArrayList<>();
     private final Map<String, MutableGraph> packageCache = new HashMap<>();
     private final Map<String, Node> nodeCache = new HashMap<>();
-    private final MutableGraph rootGraph = mutGraph().setDirected(true);
+    private final MutableGraph rootGraph = mutGraph()
+            .setDirected(true)
+            .graphAttrs().add(Rank.dir(TOP_TO_BOTTOM))
+            .graphAttrs().add("ranksep", "0.5");
 
     public FolderSelectionFrame() {
         super("Dependency Analyzer");
@@ -73,34 +80,54 @@ class FolderSelectionFrame extends JFrame {
     private synchronized void addNodeToGraph(DepsReport report) {
         graphData.add(report);
         var name = report.name();
-        var pkg = report.getPackage();
+        var pkg = getPackage(name);
         var dep = report.dependencies();
 
         var cluster = packageCache.computeIfAbsent(pkg, p -> {
             MutableGraph cl = mutGraph("cluster_" + p)
-                    .setName(p)
+                    .setCluster(true)
+                    .setDirected(true)
                     .graphAttrs().add(attrs(
                             attr("style", "filled"),
                             attr("fillcolor", "lightgrey"),
-                            attr("color", "black")));
+                            attr("color", "black"),
+                            attr("label", p)
+                    ));
             rootGraph.add(cl);
             return cl;
         });
 
-        Node from = nodeCache.computeIfAbsent(report.name(), Factory::node);
+        Node from = nodeCache.computeIfAbsent(name, Factory::node);
 
         cluster.add(from);
 
         for (String d : dep) {
+
             Node to = nodeCache.computeIfAbsent(d, Factory::node);
+            MutableGraph targetCluster = packageCache.computeIfAbsent(getPackage(d), p -> {
+                MutableGraph cl = mutGraph("cluster_" + p)
+                        .setCluster(true)
+                        .setDirected(true)
+                        .graphAttrs().add(attrs(
+                                attr("style", "filled"),
+                                attr("fillcolor", "lightgrey"),
+                                attr("color", "black"),
+                                attr("label", p)
+                        ));
+                rootGraph.add(cl);
+                return cl;
+            });
+            targetCluster.add(to);
+
             rootGraph.add(from.link(to));
+
         }
     }
 
     private void updateGraphImage() {
         SwingUtilities.invokeLater(() -> {
             try {
-                Renderer gv = Graphviz.fromGraph(rootGraph).render(Format.PNG);
+                Renderer gv = Graphviz.fromGraph(rootGraph).render(Format.SVG);
                 ImageIcon icon = new ImageIcon(gv.toImage());
                 graphLabel.setIcon(icon);
                 graphLabel.revalidate();
@@ -110,7 +137,21 @@ class FolderSelectionFrame extends JFrame {
             }
         });
     }
+
+    private String getPackage(String fqn) {
+
+        // Split the FQN by dots
+        String[] segments = fqn.split("\\.");
+
+        // Iterate over the segments in reverse order
+        for (int i = segments.length - 1; i >= 0; i--) {
+            // Return the first segment that doesn't start with an uppercase letter
+            if (!Character.isUpperCase(segments[i].charAt(0))) {
+                return segments[i];
+            }
+        }
+
+        // If all segments start with an uppercase letter, return default package
+        return fqn;
+    }
 }
-/*
-C:\Users\marco\OneDrive\Drawer2\2-Laurea-Magistrale\1Anno\PCD\assignment-02\src\main\java\pcd
- */
