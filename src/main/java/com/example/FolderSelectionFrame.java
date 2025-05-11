@@ -12,17 +12,23 @@ import io.reactivex.rxjava3.core.Flowable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static guru.nidi.graphviz.attribute.Attributes.attr;
 import static guru.nidi.graphviz.attribute.Attributes.attrs;
 import static guru.nidi.graphviz.attribute.Rank.RankDir.TOP_TO_BOTTOM;
-import static guru.nidi.graphviz.model.Factory.*;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.List;
+import static guru.nidi.graphviz.model.Factory.mutGraph;
 
 class FolderSelectionFrame extends JFrame {
     private final JLabel graphLabel = new JLabel();
+    private final JLabel classAnalyzed = new JLabel();
+    private final JLabel depFound = new JLabel();
+    private int classCounter = 0;
+    private int depsCounter = 0;
     private final List<DepsReport> graphData = new ArrayList<>();
     private final Map<String, MutableGraph> packageCache = new HashMap<>();
     private final Map<String, Node> nodeCache = new HashMap<>();
@@ -38,10 +44,15 @@ class FolderSelectionFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+
         JButton selectButton = new JButton("Select Folder");
         selectButton.addActionListener(e -> selectFolder());
 
-        add(selectButton, BorderLayout.NORTH);
+        infoPanel.add(selectButton);
+        infoPanel.add(classAnalyzed);
+        infoPanel.add(depFound);
+        add(infoPanel, BorderLayout.NORTH);
         add(new JScrollPane(graphLabel), BorderLayout.CENTER);
         setVisible(true);
     }
@@ -63,15 +74,18 @@ class FolderSelectionFrame extends JFrame {
     private void subscribeToReports(Flowable<DepsReport> reports) {
         graphData.clear();
         nodeCache.clear();
-
+        classAnalyzed.setText("Class Analyzed:\t"+classCounter);
+        depFound.setText("Dependencies found:\t"+ depsCounter);
         reports.subscribe(
                 depsReport -> {
                     Thread.sleep(2000);
+                    classCounter++;
+                    depsCounter+= depsReport.dependencies().size();
                     addNodeToGraph(depsReport);
                     updateGraphImage();
-                    },
-               error -> SwingUtilities.invokeLater(() ->
-                       JOptionPane.showMessageDialog(this, "Errore: " + error.getMessage()))
+                },
+                error -> SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(this, "Errore: " + error.getMessage()))
         );
     }
 
@@ -126,11 +140,13 @@ class FolderSelectionFrame extends JFrame {
     private void updateGraphImage() {
         SwingUtilities.invokeLater(() -> {
             try {
-                Renderer gv = Graphviz.fromGraph(rootGraph.graphAttrs().add(attr("dpi",100))).render(Format.PNG);
+                classAnalyzed.setText("Class Analyzed:\t"+classCounter);
+                depFound.setText("Dependencies found:\t"+ depsCounter);
+                Renderer gv = Graphviz.fromGraph(rootGraph.graphAttrs().add(attr("dpi", 100))).render(Format.PNG);
                 ImageIcon icon = new ImageIcon(gv.toImage());
                 graphLabel.setIcon(icon);
                 graphLabel.revalidate();
-                setSize(Math.max(icon.getIconWidth(),800),Math.max(icon.getIconHeight(), 600));
+                setSize(Math.max(icon.getIconWidth(), 800), Math.max(icon.getIconHeight(), 600));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -143,12 +159,12 @@ class FolderSelectionFrame extends JFrame {
         String[] segments = fqn.split("\\.");
         var result = "";
         // Iterate over the segments in reverse order
-        for (int i = 0; i <=segments.length - 1; i++) {
+        for (int i = 0; i <= segments.length - 1; i++) {
             // Return the first segment that doesn't start with an uppercase letter
             if (!Character.isUpperCase(segments[i].charAt(0))) {
-                result = result.concat(segments[i]+".");
+                result = result.concat(segments[i] + ".");
             } else {
-                return result.substring(0,result.length()-1);
+                return result.substring(0, result.length() - 1);
             }
         }
 
