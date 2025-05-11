@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class RxProjectDependencyAnalyzer {
+public class RxPackageDependencyAnalyzer {
 
     private final RxClassDependencyAnalyzer cda;
 
-    public RxProjectDependencyAnalyzer(final Path rootDirectory) {
+    public RxPackageDependencyAnalyzer(final Path rootDirectory) {
         cda = new RxClassDependencyAnalyzer(rootDirectory.toAbsolutePath());
     }
 

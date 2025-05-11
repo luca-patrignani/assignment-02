@@ -10,13 +10,13 @@ import java.nio.file.Path;
 
 public class RxDependencyAnalyzer {
     final Path rootDirectory;
-    final RxProjectDependencyAnalyzer pda;
+    final RxPackageDependencyAnalyzer pda;
     final RxClassDependencyAnalyzer cda;
 
     public RxDependencyAnalyzer(Path rootDirectory) {
         this.rootDirectory = rootDirectory.toAbsolutePath();
         this.cda = new RxClassDependencyAnalyzer(rootDirectory);
-        this.pda = new RxProjectDependencyAnalyzer(rootDirectory);
+        this.pda = new RxPackageDependencyAnalyzer(rootDirectory);
     }
 
     public Flowable<DepsReport> getClassDependencies(Path classPath) {
@@ -31,10 +31,6 @@ public class RxDependencyAnalyzer {
         }
     }
     public Flowable<DepsReport> getProjectDependencies() {
-        try {
-            return pda.getPackageDependencies(rootDirectory);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+            return getPackageDependencies(rootDirectory);
     }
 }
