@@ -30,7 +30,8 @@ public class RxDependencyAnalyzer {
             throw new RuntimeException(e);
         }
     }
+
     public Flowable<DepsReport> getProjectDependencies() {
-            return getPackageDependencies(rootDirectory);
+        return getPackageDependencies(rootDirectory);
     }
 }

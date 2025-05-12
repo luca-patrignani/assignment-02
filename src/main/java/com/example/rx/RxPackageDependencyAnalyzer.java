@@ -18,8 +18,8 @@ public class RxPackageDependencyAnalyzer {
 
     public Flowable<DepsReport> getPackageDependencies(Path packagePath) throws IOException {
         return cda.getClassDependencies(Flowable.fromStream(Files.walk(packagePath))
-                    .filter(Files::isRegularFile)
-                    .map(Files::readString))
-                    .subscribeOn(Schedulers.io());
+                        .filter(Files::isRegularFile)
+                        .map(Files::readString))
+                .subscribeOn(Schedulers.io());
     }
 }

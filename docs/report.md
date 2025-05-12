@@ -19,13 +19,15 @@ The library exposes three methods:
 - The `getProjectDependencies()` will call `getPackageDependencies(packageSrcFolder)` using the source folder as parameter;
 
 To make it all work the `DependencyAnalyser` will need the project source folder to check internal dependencies;
+### Petri Net
+Here's a brief Petri Net showing the Behaviour of the program:
+![](PetriNet.png)
 ### Asynchronous version
 This version will chain futures to get the result in an asynchronous fashion, so:
 - The `getClassDependencies(classSrcFile)` will return a `Future` of a `DepsReport`;
 - The `getPackageDependencies(packageSrcFolder)` result will be a `List<Future<DepsReport>>` so in order to continue chaining callbacks on futures `List<Future<DepsReport>>` to a `Future<List<DepsReport>>` without any blocking operation;
 - Then all dependencies are joined together, and dependencies which can be resolved internally are removed from the set;
-#### Petri net
-![](petri_net_future.png)
+
 ## Reactive version
 
 This approach models the dependency analysis with the use of a `Flowable`, enabling dynamic updates to the GUI:

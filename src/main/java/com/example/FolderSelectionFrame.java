@@ -74,13 +74,13 @@ class FolderSelectionFrame extends JFrame {
     private void subscribeToReports(Flowable<DepsReport> reports) {
         graphData.clear();
         nodeCache.clear();
-        classAnalyzed.setText("Class Analyzed:\t"+classCounter);
-        depFound.setText("Dependencies found:\t"+ depsCounter);
+        classAnalyzed.setText("Class Analyzed:\t" + classCounter);
+        depFound.setText("Dependencies found:\t" + depsCounter);
         reports.subscribe(
                 depsReport -> {
                     Thread.sleep(2000);
                     classCounter++;
-                    depsCounter+= depsReport.dependencies().size();
+                    depsCounter += depsReport.dependencies().size();
                     addNodeToGraph(depsReport);
                     updateGraphImage();
                 },
@@ -140,8 +140,8 @@ class FolderSelectionFrame extends JFrame {
     private void updateGraphImage() {
         SwingUtilities.invokeLater(() -> {
             try {
-                classAnalyzed.setText("Class Analyzed:\t"+classCounter);
-                depFound.setText("Dependencies found:\t"+ depsCounter);
+                classAnalyzed.setText("Class Analyzed:\t" + classCounter);
+                depFound.setText("Dependencies found:\t" + depsCounter);
                 Renderer gv = Graphviz.fromGraph(rootGraph.graphAttrs().add(attr("dpi", 100))).render(Format.PNG);
                 ImageIcon icon = new ImageIcon(gv.toImage());
                 graphLabel.setIcon(icon);

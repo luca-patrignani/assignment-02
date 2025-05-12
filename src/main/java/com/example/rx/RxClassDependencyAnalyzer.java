@@ -51,16 +51,16 @@ public class RxClassDependencyAnalyzer {
                                     .map(ImportDeclaration::getNameAsString);
                     final Stream<String> usedTypes =
                             compilationUnit.findAll(ClassOrInterfaceType.class).stream()
-                            .flatMap(classOrInterfaceType -> {
-                                try {
-                                    return Stream.of(classOrInterfaceType.resolve());
-                                } catch (UnsolvedSymbolException | IllegalStateException ignored) {
-                                    return Stream.empty();
-                                }
-                            })
-                            .map(ResolvedType::asReferenceType)
-                            .map(ResolvedReferenceType::getQualifiedName)
-                            .filter(s -> !s.equals(className));
+                                    .flatMap(classOrInterfaceType -> {
+                                        try {
+                                            return Stream.of(classOrInterfaceType.resolve());
+                                        } catch (UnsolvedSymbolException | IllegalStateException ignored) {
+                                            return Stream.empty();
+                                        }
+                                    })
+                                    .map(ResolvedType::asReferenceType)
+                                    .map(ResolvedReferenceType::getQualifiedName)
+                                    .filter(s -> !s.equals(className));
                     return new DepsReport(className, Stream.concat(importedSymbols, usedTypes).collect(Collectors.toSet()));
                 });
     }

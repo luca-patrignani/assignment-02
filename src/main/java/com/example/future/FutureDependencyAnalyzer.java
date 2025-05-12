@@ -32,6 +32,7 @@ public class FutureDependencyAnalyzer {
     public Future<DepsReport> getPackageDependencies(Path packagePath) {
         return pda.getPackageDependencies(Future.succeededFuture(packagePath.toAbsolutePath()));
     }
+
     public Future<DepsReport> getProjectDependencies() {
         return pda.getPackageDependencies(Future.succeededFuture(rootDirectory));
     }

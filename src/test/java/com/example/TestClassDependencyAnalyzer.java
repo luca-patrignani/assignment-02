@@ -36,7 +36,7 @@ public abstract class TestClassDependencyAnalyzer {
         }
         final var dependencies = getDependencies(code);
         assertEquals("pcd.ass02.foopack2.F", dependencies.name());
-        assertEquals(Set.of("pcd.ass02.foopack2.G", "pcd.ass02.foopack2.G.innerG"), dependencies.dependencies());
+        assertEquals(Set.of("pcd.ass02.foopack2.G", "pcd.ass02.foopack2.G.InnerG"), dependencies.dependencies());
 
     }
 

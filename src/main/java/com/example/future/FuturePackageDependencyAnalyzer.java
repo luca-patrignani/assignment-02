@@ -34,12 +34,12 @@ public class FuturePackageDependencyAnalyzer {
                                 .map(cda::getClassDependencies)
                                 .toList()))
                 .compose(f -> Future.succeededFuture(f.stream()
-                                                        .map(DepsReport::dependencies)
-                                                        .toList()))
+                        .map(DepsReport::dependencies)
+                        .toList()))
                 .map(x -> x.stream()
-                                            .flatMap(Set::stream)
-                                            .filter(s -> !s.contains(packageName.result()))
-                                            .collect(toSet()));
+                        .flatMap(Set::stream)
+                        .filter(s -> !s.contains(packageName.result()))
+                        .collect(toSet()));
 
         return Future.all(packageName, allDependencies)
                 .compose(compositeFuture -> {
@@ -67,10 +67,10 @@ public class FuturePackageDependencyAnalyzer {
                     })
             ).collect(Collectors.toList());
 
-            // Combina tutto in un solo future
+            // Combine all in one Future
             return FuturesHelper.all(futures).map(cf ->
                     cf.stream()
-                            .flatMap(obj -> ((List<String>) obj).stream())
+                            .flatMap(obj -> obj.stream())
                             .collect(Collectors.toList())
             );
         });

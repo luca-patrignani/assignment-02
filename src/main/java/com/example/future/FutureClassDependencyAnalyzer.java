@@ -18,10 +18,11 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.toSet;
 
 public class FutureClassDependencyAnalyzer {
 
@@ -38,9 +39,9 @@ public class FutureClassDependencyAnalyzer {
         Future<CompilationUnit> compilationUnit = classCode.compose(code -> Future.succeededFuture(StaticJavaParser.parse(code.toString())));
         final Future<Set<String>> importedSymbolsFuture = compilationUnit.compose(
                 cu -> Future.succeededFuture(
-                    cu.findAll(ImportDeclaration.class).stream()
-                            .map(ImportDeclaration::getNameAsString)
-                            .collect(toSet())
+                        cu.findAll(ImportDeclaration.class).stream()
+                                .map(ImportDeclaration::getNameAsString)
+                                .collect(toSet())
                 )
         );
         Future<Set<String>> usedTypesFuture = compilationUnit.compose(
@@ -55,39 +56,26 @@ public class FutureClassDependencyAnalyzer {
                                 })
                                 .map(ResolvedType::asReferenceType)
                                 .map(ResolvedReferenceType::getQualifiedName)
-                        .collect(toSet())
+                                .collect(toSet())
                 )
         );
-        //final Future<Set<String>> definedClasses = compilationUnit.compose(
-        //        cu -> Future.succeededFuture(
-        //                Stream.of(
-        //                    cu.findAll(ClassOrInterfaceDeclaration.class).stream().map(ClassOrInterfaceDeclaration::resolve),
-        //                    cu.findAll(EnumDeclaration.class).stream().map(EnumDeclaration::resolve),
-        //                    cu.findAll(RecordDeclaration.class).stream().map(RecordDeclaration::resolve)
-        //                ).flatMap(s -> s)
-        //                        .map(ResolvedReferenceTypeDeclaration::getQualifiedName)
-        //                        .collect(toSet())
-        //        )
-        //);
-       @SuppressWarnings("OptionalGetWithoutIsPresent")
-       final Future<String> topClassName = compilationUnit.compose(
-               cu -> Future.succeededFuture(
-                       (String)cu.findFirst(TypeDeclaration.class)
-                           .flatMap(TypeDeclaration::getFullyQualifiedName)
-                           .get()
-               )
-       );
-       return Future.all(importedSymbolsFuture, usedTypesFuture, topClassName)
-               .compose(compositeFuture -> {
-                   @SuppressWarnings("unchecked")
-                   final var dependencies = new HashSet<>((Set<String>)compositeFuture.resultAt(0));
-                   dependencies.addAll(compositeFuture.resultAt(1));
-                   final String className = compositeFuture.resultAt(2);
-                   dependencies.remove(className);
-                   return Future.succeededFuture(new DepsReport(
-                           className,
-                           dependencies
-                   ));
-               });
+        @SuppressWarnings("OptionalGetWithoutIsPresent") final Future<String> topClassName = compilationUnit.compose(
+                cu -> Future.succeededFuture(
+                        (String) cu.findFirst(TypeDeclaration.class)
+                                .flatMap(TypeDeclaration::getFullyQualifiedName)
+                                .get()
+                )
+        );
+        return Future.all(importedSymbolsFuture, usedTypesFuture, topClassName)
+                .compose(compositeFuture -> {
+                    @SuppressWarnings("unchecked") final var dependencies = new HashSet<>((Set<String>) compositeFuture.resultAt(0));
+                    dependencies.addAll(compositeFuture.resultAt(1));
+                    final String className = compositeFuture.resultAt(2);
+                    dependencies.remove(className);
+                    return Future.succeededFuture(new DepsReport(
+                            className,
+                            dependencies
+                    ));
+                });
     }
 }
